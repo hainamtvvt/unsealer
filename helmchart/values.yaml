@@ -1,0 +1,106 @@
+# Helm values for Vault Unsealer
+
+# Image configuration
+image:
+  repository: hainamtvvt/unsealer
+  tag: 0.1.1
+  pullPolicy: IfNotPresent
+
+# Namespace to deploy unsealer
+namespace: vault
+
+# Vault configuration
+vault:
+  # Namespace where Vault pods are running
+  namespace: vault
+
+  # Label selector to find Vault pods
+  labelSelector: "app.kubernetes.io/instance=vault"
+
+  # Unseal keys (will be stored in Secret)
+  # IMPORTANT: Change these to your actual unseal keys
+  unsealKeys:
+    - "key-1"
+    - "key-2"
+    - "key-3"
+
+  # Use service name instead of pod IP
+  useService: false
+
+  # Request timeout
+  timeout: 10
+
+# CronJob configuration
+cronjob:
+  enabled: false
+
+  # Schedule (cron format)
+  # Default: every 5 minutes
+  schedule: "*/5 * * * *"
+
+  # History limits
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+
+  # Job timeout
+  activeDeadlineSeconds: 300
+
+  # Retry policy
+  backoffLimit: 2
+
+  # Resources
+  resources:
+    requests:
+      memory: "64Mi"
+      cpu: "100m"
+    limits:
+      memory: "128Mi"
+      cpu: "200m"
+
+# Watcher deployment (watch mode)
+watcher:
+  enabled: true
+
+  # Number of replicas (recommended: 1)
+  replicas: 1
+
+  # Check interval in seconds
+  interval: 30
+
+  # Enable verbose logging
+  verbose: false
+
+  # Resources
+  resources:
+    requests:
+      memory: "64Mi"
+      cpu: "50m"
+    limits:
+      memory: "128Mi"
+      cpu: "100m"
+
+
+# RBAC configuration
+rbac:
+  create: true
+
+# ServiceAccount configuration
+serviceAccount:
+  create: true
+  name: vault-unsealer
+  annotations: {}
+
+# Security context
+
+
+# Pod annotations
+podAnnotations: {}
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}

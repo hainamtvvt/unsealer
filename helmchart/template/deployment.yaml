@@ -1,0 +1,103 @@
+{{- if .Values.watcher.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vault-unsealer
+  namespace: {{ .Values.namespace | quote }}
+  labels:
+    app: vault-unsealer
+    chart: {{ printf "%s-%s" .Chart.Name (.Chart.Version | replace "+" "_") }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.watcher.replicas }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: vault-unsealer
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: vault-unsealer
+        release: {{ .Release.Name }}
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      serviceAccountName: {{ .Values.serviceAccount.name | quote }}
+
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: vault-unsealer
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: VAULT_NAMESPACE
+              value: {{ .Values.vault.namespace | quote }}
+            - name: VAULT_LABEL_SELECTOR
+              value: {{ .Values.vault.labelSelector | quote }}
+            - name: VAULT_TIMEOUT
+              value: {{ .Values.vault.timeout | quote }}
+            - name: VAULT_USE_SERVICE
+              value: {{ .Values.vault.useService | quote }}
+            - name: WATCH_INTERVAL
+              value: {{ .Values.watcher.interval | quote }}
+            - name: VERBOSE
+              value: {{ .Values.watcher.verbose | quote }}
+            - name: UNSEAL_KEYS
+              valueFrom:
+                secretKeyRef:
+                  name: vault-unsealer-keys
+                  key: unseal-keys
+
+          {{- with .Values.watcher.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+
+          {{- if .Values.watcher.livenessProbe.enabled }}
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - ps aux | grep vault-k8s-unsealer | grep -v grep
+            initialDelaySeconds: {{ .Values.watcher.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.watcher.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.watcher.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.watcher.livenessProbe.failureThreshold }}
+          {{- end }}
+
+          {{- if .Values.watcher.readinessProbe.enabled }}
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - ps aux | grep vault-k8s-unsealer | grep -v grep
+            initialDelaySeconds: {{ .Values.watcher.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.watcher.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.watcher.readinessProbe.timeoutSeconds }}
+          {{- end }}
+
+      restartPolicy: Always
+{{- end }}

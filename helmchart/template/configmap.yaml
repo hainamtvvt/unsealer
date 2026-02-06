@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vault-unsealer-config
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: vault-unsealer
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+data:
+  vault-namespace: "{{ .Values.namespace }}"
+  vault-label-selector: "{{ .Values.vault.labelSelector }}"
+  watch-interval: "{{ .Values.watcher.interval }}"
+  vault-timeout: "{{ .Values.vault.timeout }}"
+  vault-use-service: "{{ .Values.vault.useService }}"
+  verbose: "{{ .Values.watcher.verbose }}"

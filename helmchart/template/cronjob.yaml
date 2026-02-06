@@ -1,0 +1,67 @@
+{{- if .Values.cronjob.enabled -}}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: vault-unsealer-cronjob
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: vault-unsealer
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  schedule: "{{ .Values.cronjob.schedule }}"
+  successfulJobsHistoryLimit: {{ .Values.cronjob.successfulJobsHistoryLimit }}
+  failedJobsHistoryLimit: {{ .Values.cronjob.failedJobsHistoryLimit }}
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: {{ .Values.cronjob.activeDeadlineSeconds }}
+      backoffLimit: {{ .Values.cronjob.backoffLimit }}
+      template:
+        metadata:
+          labels:
+            app: vault-unsealer
+            release: {{ .Release.Name }}
+          {{- with .Values.podAnnotations }}
+          annotations:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+        spec:
+          serviceAccountName: {{ .Values.serviceAccount.name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          {{- with .Values.nodeSelector }}
+          nodeSelector:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.affinity }}
+          affinity:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.tolerations }}
+          tolerations:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          containers:
+          - name: vault-unsealer
+            image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+            imagePullPolicy: {{ .Values.image.pullPolicy }}
+            env:
+            - name: VAULT_NAMESPACE
+              value: "{{ .Values.vault.namespace }}"
+            - name: VAULT_LABEL_SELECTOR
+              value: "{{ .Values.vault.labelSelector }}"
+            - name: VAULT_TIMEOUT
+              value: "{{ .Values.vault.timeout }}"
+            - name: VAULT_USE_SERVICE
+              value: "{{ .Values.vault.useService | quote }}"
+            - name: UNSEAL_KEYS
+              valueFrom:
+                secretKeyRef:
+                  name: vault-unsealer-keys
+                  key: unseal-keys
+            resources:
+              {{- toYaml .Values.cronjob.resources | nindent 14 }}
+          restartPolicy: OnFailure
+{{- end }}
