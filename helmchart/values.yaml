@@ -93,7 +93,7 @@ serviceAccount:
 # Security context
 
 
-# Pod annotation
+# Pod annotations
 podAnnotations: {}
 
 # Node selector
