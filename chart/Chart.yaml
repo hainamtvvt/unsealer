@@ -8,9 +8,9 @@ keywords:
   - vault
   - unsealer
   - hashicorp
-home: https://github.com/hainamtvvt/vault-unsealer
+home: https://github.com/hainamtvvt/unsealer.git
 sources:
-  - https://github.com/hainamtvvt/vault-unsealer
+  - https://github.com/hainamtvvt/unsealer.git
 maintainers:
   - name: namvh
     email: vhn@gmail.com
