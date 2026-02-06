@@ -50,6 +50,15 @@ spec:
         - name: vault-unsealer
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          # ✅ FIX #1: Thêm --watch để container chạy liên tục
+          command:
+          - python3
+          - /app/vault-unsealer.py
+          args:
+          - --watch            # Watch mode - không thoát
+          - --interval
+          - "30"               # Check mỗi 30 giây
+          - --verbose          # Hiển thị logs chi tiết
           env:
             - name: VAULT_NAMESPACE
               value: {{ .Values.vault.namespace | quote }}
@@ -63,41 +72,31 @@ spec:
               value: {{ .Values.watcher.interval | quote }}
             - name: VERBOSE
               value: {{ .Values.watcher.verbose | quote }}
-            - name: UNSEAL_KEYS
+            - name: VAULT_UNSEAL_KEY_1
               valueFrom:
                 secretKeyRef:
                   name: vault-unsealer-keys
-                  key: unseal-keys
+                  key: key1
+                  optional: false
 
+            - name: VAULT_UNSEAL_KEY_2
+              valueFrom:
+                secretKeyRef:
+                  name: vault-unsealer-keys
+                  key: key2
+                  optional: false
+
+            - name: VAULT_UNSEAL_KEY_3
+              valueFrom:
+                secretKeyRef:
+                  name: vault-unsealer-keys
+                  key: key3
+                  optional: false
           {{- with .Values.watcher.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
 
-          {{- if .Values.watcher.livenessProbe.enabled }}
-          livenessProbe:
-            exec:
-              command:
-                - /bin/sh
-                - -c
-                - ps aux | grep vault-k8s-unsealer | grep -v grep
-            initialDelaySeconds: {{ .Values.watcher.livenessProbe.initialDelaySeconds }}
-            periodSeconds: {{ .Values.watcher.livenessProbe.periodSeconds }}
-            timeoutSeconds: {{ .Values.watcher.livenessProbe.timeoutSeconds }}
-            failureThreshold: {{ .Values.watcher.livenessProbe.failureThreshold }}
-          {{- end }}
-
-          {{- if .Values.watcher.readinessProbe.enabled }}
-          readinessProbe:
-            exec:
-              command:
-                - /bin/sh
-                - -c
-                - ps aux | grep vault-k8s-unsealer | grep -v grep
-            initialDelaySeconds: {{ .Values.watcher.readinessProbe.initialDelaySeconds }}
-            periodSeconds: {{ .Values.watcher.readinessProbe.periodSeconds }}
-            timeoutSeconds: {{ .Values.watcher.readinessProbe.timeoutSeconds }}
-          {{- end }}
 
       restartPolicy: Always
 {{- end }}
